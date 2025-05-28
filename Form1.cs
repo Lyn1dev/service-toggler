@@ -1,12 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.ServiceProcess;
 using System.Security.Principal;
 using System.Reflection;
@@ -16,7 +7,7 @@ namespace ServiceToggler;
 public partial class Form1 : Form
 {
     private ListView listViewServices;
-    private Label lblStatus;
+    private TextBox txtOutputLog;
     private Button btnSave;
 
     public Form1()
@@ -29,6 +20,7 @@ public partial class Form1 : Form
     {
         listViewServices.Columns.Add("Service Name", 150);
         listViewServices.Columns.Add("Status", 80);
+        listViewServices.Columns.Add("Description", 300);
         listViewServices.CheckBoxes = true;
         string[] services = { "pcasvc", "sysmain", "dps", "CDPU", "eventlog", "dcomlaunch", "BAM", "Dusmsvc" };
         foreach (string serviceName in services)
@@ -39,19 +31,49 @@ public partial class Form1 : Form
 
     private void AddServiceToList(string serviceName)
     {
+        string description = "";
+        switch (serviceName)
+        {
+            case "pcasvc":
+                description = "Program Compatibility Assistant Service";
+                break;
+            case "sysmain":
+                description = "Maintains and improves system performance";
+                break;
+            case "dps":
+                description = "Enables problem detection and resolution";
+                break;
+            case "CDPU":
+                description = "Used for Connected Devices and Universal Apps";
+                break;
+            case "eventlog":
+                description = "Manages event logging and tracing";
+                break;
+            case "dcomlaunch":
+                description = "Provides the launching of DCOM servers";
+                break;
+            case "BAM":
+                description = "Moderates background activity to conserve power";
+                break;
+            case "Dusmsvc":
+                description = "Manages data usage policies";
+                break;
+        }
+
         try
         {
             using (ServiceController sc = new ServiceController(serviceName))
             {
                 ListViewItem item = new ListViewItem(serviceName);
                 item.SubItems.Add(sc.Status.ToString());
+                item.SubItems.Add(description);
                 item.Checked = (sc.Status == ServiceControllerStatus.Running);
                 listViewServices.Items.Add(item);
             }
         }
         catch (Exception ex)
         {
-            lblStatus.Text = $"Error checking {serviceName}: {ex.Message}";
+            txtOutputLog.AppendText($"Error checking {serviceName}: {ex.Message}\r\n");
         }
     }
 
@@ -59,82 +81,65 @@ public partial class Form1 : Form
     {
         if (!IsAdministrator())
         {
-            // Restart program and run as admin
-            var processInfo = new System.Diagnostics.ProcessStartInfo(Assembly.GetEntryAssembly().CodeBase);
+            MessageBox.Show("This application must be run as administrator to toggle services.");
+            return;
+        }
 
-            // The following properties run the new process as administrator
-            processInfo.UseShellExecute = true;
-            processInfo.Verb = "runas";
-
-            // Start the new process
+        foreach (ListViewItem item in listViewServices.Items)
+        {
+            string serviceName = item.Text;
             try
             {
-                System.Diagnostics.Process.Start(processInfo);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"This program must be run as an administrator! \n\nError: {ex.Message}");
-            }
-
-            // Shut down the current process
-            Application.Exit();
-        }
-        else
-        {
-            foreach (ListViewItem item in listViewServices.Items)
-            {
-                string serviceName = item.Text;
-                try
+                using (ServiceController sc = new ServiceController(serviceName))
                 {
-                    using (ServiceController sc = new ServiceController(serviceName))
+                    if (item.Checked)
                     {
-                        if (item.Checked)
+                        if (sc.Status == ServiceControllerStatus.Stopped || sc.Status == ServiceControllerStatus.Paused)
                         {
-                            if (sc.Status == ServiceControllerStatus.Stopped || sc.Status == ServiceControllerStatus.Paused)
+                            sc.Start();
+                            sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
+                            txtOutputLog.AppendText($"Started {serviceName}\r\n");
+                            item.SubItems[1].Text = sc.Status.ToString();
+                        }
+                        else
+                        {
+                            txtOutputLog.AppendText($"{serviceName} is already running.\r\n");
+                        }
+                    }
+                    else
+                    {
+                        if (sc.Status == ServiceControllerStatus.Running)
+                        {
+                            try
                             {
-                                sc.Start();
-                                sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(10));
-                                lblStatus.Text = $"Started {serviceName}";
+                                sc.Stop();
+                                sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
+                                txtOutputLog.AppendText($"Stopped {serviceName}\r\n");
                                 item.SubItems[1].Text = sc.Status.ToString();
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                lblStatus.Text = $"{serviceName} is already running.";
+                                txtOutputLog.AppendText($"Error stopping {serviceName}: {ex.Message}\r\n");
                             }
                         }
                         else
                         {
-                            if (sc.Status == ServiceControllerStatus.Running)
-                            {
-                                try
-                                {
-                                    sc.Stop();
-                                    sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(10));
-                                    lblStatus.Text = $"Stopped {serviceName}";
-                                    item.SubItems[1].Text = sc.Status.ToString();
-                                }
-                                catch (Exception ex)
-                                {
-                                    lblStatus.Text = $"Error stopping {serviceName}: {ex.Message}";
-                                }
-                            }
-                            else
-                            {
-                                lblStatus.Text = $"{serviceName} is already stopped.";
-                            }
+                            txtOutputLog.AppendText($"{serviceName} is already stopped.\r\n");
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    lblStatus.Text = $"Error: {ex.Message}";
-                }
+            }
+            catch (Exception ex)
+            {
+                txtOutputLog.AppendText($"Error: {ex.Message}\r\n");
             }
         }
     }
 
     private bool IsAdministrator()
     {
-        return (new WindowsPrincipal(WindowsIdentity.GetCurrent())).IsInRole(WindowsBuiltInRole.Administrator);
+        WindowsIdentity identity = WindowsIdentity.GetCurrent();
+        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 }

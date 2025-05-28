@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ServiceToggler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6df58f43e121d57cc47386bbb574dd106ccd56b9")]
 [assembly: System.Reflection.AssemblyProductAttribute("ServiceToggler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ServiceToggler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

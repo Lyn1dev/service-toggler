@@ -16,3 +16,4 @@ C:\Users\Aneesh\Desktop\service toggler\obj\Debug\net9.0-windows\refint\ServiceT
 C:\Users\Aneesh\Desktop\service toggler\obj\Debug\net9.0-windows\ServiceToggler.pdb
 C:\Users\Aneesh\Desktop\service toggler\obj\Debug\net9.0-windows\ServiceToggler.genruntimeconfig.cache
 C:\Users\Aneesh\Desktop\service toggler\obj\Debug\net9.0-windows\ref\ServiceToggler.dll
+C:\Users\Aneesh\Desktop\service toggler\obj\Debug\net9.0-windows\ServiceToggler.sourcelink.json
